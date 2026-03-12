@@ -103,16 +103,12 @@ export default function Register() {
             style={styles.input}
           />
 
-          <select
-            name="role"
-            value={form.role}
-            onChange={handleChange}
-            style={styles.input}
-          >
-            <option value="ALUMNI">Alumni</option>
-            <option value="STUDENT">Student</option>
-            <option value="FACULTY">Faculty</option>
-          </select>
+          <select name="role" value={form.role} onChange={handleChange}>
+  <option value="STUDENT">Student</option>
+  <option value="ALUMNI">Alumni</option>
+  <option value="FACULTY">Faculty</option>
+</select>
+
 
           <button type="submit" style={styles.button} disabled={loading}>
             {loading ? "Creating account..." : "Register"}

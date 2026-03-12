@@ -10,6 +10,11 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 🔐 forgot password states
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotMsg, setForgotMsg] = useState("");
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
@@ -23,20 +28,40 @@ export default function Login() {
       setLoading(true);
 
       const res = await api.post("/api/users/login", {
-        email,
-        password,
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
       });
 
-      // ✅ store auth data
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      const { token, user } = res.data;
 
-      // ✅ client-side navigation
-      navigate("/");
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      window.location.href = "/";
+
+      if (user.role === "ADMIN") {
+        navigate("/admin");
+      } else {
+        navigate("/events");
+      }
     } catch (err) {
       setError("Invalid email or password");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🔁 forgot password API call
+  const handleForgotPassword = async () => {
+    try {
+      setForgotMsg("");
+      await api.post("/api/users/forgot-password/email", {
+        email: forgotEmail,
+      });
+      setForgotMsg("Reset link generated successfully. Check console.");
+      setForgotEmail("");
+    } catch (err) {
+      setForgotMsg("Failed to send reset link");
+      console.error(err);
     }
   };
 
@@ -66,11 +91,45 @@ export default function Login() {
         <button type="submit" style={styles.button} disabled={loading}>
           {loading ? "Logging in..." : "Login"}
         </button>
+
+        {/* 🔐 Forgot Password Trigger */}
+        <p
+          style={styles.forgotLink}
+          onClick={() => setShowForgot(!showForgot)}
+        >
+          Forgot Password?
+        </p>
+
+        {/* 🔐 Forgot Password Form */}
+        {showForgot && (
+          <div style={styles.forgotBox}>
+            <input
+              type="email"
+              placeholder="Enter registered email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              style={styles.input}
+            />
+            <button
+              type="button"
+              style={styles.button}
+              onClick={handleForgotPassword}
+            >
+              Send Reset Link
+            </button>
+            {forgotMsg && (
+              <p style={{ marginTop: "8px", fontSize: "13px" }}>
+                {forgotMsg}
+              </p>
+            )}
+          </div>
+        )}
       </form>
     </div>
   );
 }
 
+/* styles */
 const styles = {
   page: {
     minHeight: "100vh",
@@ -112,5 +171,17 @@ const styles = {
     textAlign: "center",
     marginBottom: "10px",
     fontSize: "13px",
+  },
+  forgotLink: {
+    marginTop: "12px",
+    textAlign: "center",
+    color: "#646cff",
+    cursor: "pointer",
+    fontSize: "14px",
+  },
+  forgotBox: {
+    marginTop: "15px",
+    borderTop: "1px solid #eee",
+    paddingTop: "15px",
   },
 };

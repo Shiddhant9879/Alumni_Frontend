@@ -1,146 +1,138 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const eventsData = [
-  {
-    id: 1,
-    name: "Startup Fundraising Meet",
-    type: "Startup",
-    description:
-      "An alumni-led startup fundraising event connecting founders with mentors and early-stage investors.",
-    registrationDeadline: "25 Sep 2026",
-    location: "College Auditorium",
-    date: "2026-09-30",
-  },
-  {
-    id: 2,
-    name: "Industry-Oriented Coding Bootcamp",
-    type: "Coding",
-    description:
-      "A hands-on coding bootcamp focused on problem-solving, system thinking, and industry practices.",
-    registrationDeadline: "10 Oct 2026",
-    location: "Computer Lab Block",
-    date: "2026-10-15",
-  },
-  {
-    id: 3,
-    name: "Industrial Visit – Chakan",
-    type: "Industrial Visit",
-    description:
-      "A guided industrial visit to manufacturing units in Chakan Industrial Area to understand real-world operations.",
-    registrationDeadline: "05 Nov 2026",
-    location: "Chakan, Pune",
-    date: "2026-11-10",
-  },
-];
+import api from "../api/axios";
 
 export default function Events() {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("upcoming");
+  const [events, setEvents] = useState([]);
+  const [error, setError] = useState("");
+
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
   const navigate = useNavigate();
 
-  const filteredEvents = eventsData
-    .filter((event) =>
-      event.name.toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  useEffect(() => {
+    api
+      .get("/api/events")
+      .then((res) => setEvents(res.data))
+      .catch(() => setError("Failed to load events"));
+  }, []);
 
   return (
-    <div className="module-page">
-      {/* SEARCH + FILTERS */}
-      <div style={styles.topBar}>
-        <input
-          placeholder="Search events"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={styles.search}
-        />
+    <div style={styles.page}>
+      <h2 style={styles.heading}>Upcoming Events</h2>
+      <p style={styles.subHeading}>
+        Stay updated with alumni meets, seminars, and institutional events
+      </p>
 
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          style={styles.select}
-        >
-          <option value="upcoming">Upcoming</option>
-          <option value="nearest">Nearest</option>
-        </select>
-      </div>
+      {error && <p style={styles.error}>{error}</p>}
+      {events.length === 0 && !error && (
+        <p style={styles.empty}>No events available</p>
+      )}
 
-      {/* CURRENT EVENTS */}
-      <div className="app-card" style={styles.card}>
-        <h3>Current Events</h3>
+      <div style={styles.grid}>
+        {events.map((event) => (
+          <div key={event.id} style={styles.card}>
+            <h3 style={styles.title}>{event.title}</h3>
+            <p style={styles.description}>{event.description}</p>
 
-        <div style={styles.grid}>
-          {filteredEvents.map((event) => (
-            <div key={event.id} style={styles.eventCard}>
-              <h4>{event.name}</h4>
-              <p style={styles.type}>{event.type}</p>
-              <p>{event.description}</p>
+            <p style={styles.date}>
+              <b>Date:</b>{" "}
+              {event.eventDate || event.date || "Not specified"}
+            </p>
 
-              <p>
-                <strong>Registration Deadline:</strong>{" "}
-                {event.registrationDeadline}
-              </p>
-              <p>
-                <strong>Location:</strong> {event.location}
-              </p>
-
-              {/* ONLY NAVIGATION — NO LOGIC */}
+            {(user.role == "STUDENT") && (
               <button
                 onClick={() =>
                   navigate(`/events/register/${event.id}`)
                 }
+                style={styles.primaryBtn}
               >
                 Register
               </button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* EVENT HISTORY */}
-      <div className="app-card" style={styles.card}>
-        <h3>Past Events</h3>
-        <p>Alumni Meet 2023</p>
-        <p>Webinar on Higher Studies</p>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 const styles = {
-  topBar: {
-    display: "flex",
-    gap: "15px",
-    marginLeft: "200px",
-    marginBottom: "20px",
+  page: {
+    minHeight: "100vh",
+    background: "linear-gradient(135deg, #e0f2fe, #f8fafc)",
+    padding: "40px 30px",
+    fontFamily: "Inter, sans-serif",
   },
-  search: {
-    width: "60%",
-    padding: "10px",
+
+  heading: {
+    fontSize: "28px",
+    fontWeight: "700",
+    color: "#0f172a",
+    marginBottom: "6px",
   },
-  select: {
-    padding: "10px",
-  },
-  card: {
-    marginLeft: "200px",
+
+  subHeading: {
+    color: "#475569",
     marginBottom: "30px",
+    fontSize: "15px",
   },
+
+  error: {
+    color: "#dc2626",
+    fontWeight: "600",
+    marginBottom: "15px",
+  },
+
+  empty: {
+    color: "#64748b",
+    fontWeight: "500",
+  },
+
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
     gap: "20px",
-    marginTop: "20px",
   },
-  eventCard: {
-    backgroundColor: "#f9fafb",
+
+  card: {
+    background: "#ffffff",
     padding: "20px",
-    borderRadius: "8px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+    borderRadius: "16px",
+    boxShadow: "0 18px 35px rgba(0,0,0,0.08)",
+    border: "1px solid #e2e8f0",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
   },
-  type: {
-    fontSize: "13px",
+
+  title: {
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#1e3a8a",
+    marginBottom: "8px",
+  },
+
+  description: {
+    color: "#475569",
+    fontSize: "14px",
+    marginBottom: "12px",
+    lineHeight: "1.5",
+  },
+
+  date: {
+    fontSize: "14px",
+    color: "#0f172a",
+    marginBottom: "12px",
+  },
+
+  primaryBtn: {
+    marginTop: "10px",
+    padding: "10px 18px",
+    background: "linear-gradient(135deg, #1d4ed8, #2563eb)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "10px",
     fontWeight: "600",
-    color: "#2563eb",
+    cursor: "pointer",
+    boxShadow: "0 8px 18px rgba(37,99,235,0.25)",
+    transition: "all 0.2s ease",
   },
 };

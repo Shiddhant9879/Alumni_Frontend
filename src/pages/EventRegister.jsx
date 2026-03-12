@@ -1,78 +1,63 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
-
-/* SAME EVENT DATA (DB LATER) */
-const eventsData = [
-  {
-    id: "1",
-    name: "Startup Fundraising Meet",
-    description:
-      "An alumni-led startup fundraising event connecting founders with mentors and investors.",
-    date: "30 Sep 2026",
-    location: "College Auditorium",
-  },
-  {
-    id: "2",
-    name: "Industry-Oriented Coding Bootcamp",
-    description:
-      "Hands-on coding bootcamp focused on industry-ready problem solving.",
-    date: "15 Oct 2026",
-    location: "Computer Lab Block",
-  },
-  {
-    id: "3",
-    name: "Industrial Visit – Chakan",
-    description:
-      "Industrial exposure visit to manufacturing units at Chakan.",
-    date: "10 Nov 2026",
-    location: "Chakan, Pune",
-  },
-];
+import { useEffect, useState } from "react";
+import api from "../api/axios";
 
 export default function EventRegister() {
   const { eventId } = useParams();
   const navigate = useNavigate();
 
-  const event = eventsData.find((e) => e.id === String(eventId));
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
+  const [event, setEvent] = useState(null);
   const [form, setForm] = useState({
     name: "",
     prn: "",
     email: "",
     phone: "",
   });
-
   const [success, setSuccess] = useState(false);
 
+  useEffect(() => {
+    api.get("/api/events").then((res) => {
+      const found = res.data.find(
+        (e) => String(e.id) === String(eventId)
+      );
+      setEvent(found);
+    });
+  }, [eventId]);
+
   if (!event) {
-    return (
-      <p style={{ marginLeft: "200px" }}>
-        Event not found. Please go back.
-      </p>
-    );
+    return <p style={{ marginLeft: "200px" }}>Loading event...</p>;
   }
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const submitForm = () => {
+  const submitForm = async () => {
     if (!form.name || !form.prn || !form.email || !form.phone) {
       alert("Please fill all required fields");
       return;
     }
 
-    setSuccess(true);
+    try {
+      await api.post("/api/event-registrations", {
+        userId: user.id,
+        eventId: event.id,
+      });
+
+      setSuccess(true);
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 400) {
+        alert("Already registered for this event");
+      } else {
+        alert("Registration failed");
+      }
+    }
   };
 
   const goBack = () => {
-    setSuccess(false);
-    setForm({
-      name: "",
-      prn: "",
-      email: "",
-      phone: "",
-    });
     navigate("/events");
   };
 
@@ -82,34 +67,23 @@ export default function EventRegister() {
         className="app-card"
         style={{ marginLeft: "200px", maxWidth: "700px" }}
       >
-        <h3>{event.name}</h3>
+        <h3>{event.title}</h3>
         <p>{event.description}</p>
 
-        <p>
-          <strong>Date:</strong> {event.date}
-        </p>
-        <p>
-          <strong>Location:</strong> {event.location}
-        </p>
+        <p><strong>Date:</strong> {event.eventDate}</p>
 
         <hr />
 
-        {/* SUCCESS MESSAGE */}
-        {success && (
+        {success ? (
           <div style={styles.successBox}>
             <p>
               ✅ You have successfully registered for{" "}
-              <strong>{event.name}</strong>
+              <strong>{event.title}</strong>
             </p>
 
-            <button onClick={goBack}>
-              Back to Events
-            </button>
+            <button onClick={goBack}>Back to Events</button>
           </div>
-        )}
-
-        {/* REGISTRATION FORM */}
-        {!success && (
+        ) : (
           <>
             <h4>Event Registration</h4>
 
@@ -149,10 +123,7 @@ export default function EventRegister() {
               Confirm Registration
             </button>
 
-            <button
-              onClick={goBack}
-              style={{ marginLeft: "10px" }}
-            >
+            <button onClick={goBack} style={{ marginLeft: "10px" }}>
               Back to Events
             </button>
           </>
