@@ -32,7 +32,7 @@ export default function Register() {
     try {
       setLoading(true);
 
-      const res = await fetch("http://localhost:8080/api/users/register", {
+      const res = await fetch("https://alumni-backend-iquq.onrender.com", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
